@@ -1,0 +1,57 @@
+Skip to content
+ChatGPT said:
+System design in layers:
+
+1. Data layer
+
+Source: CSV of BoardGameGeek data. (bgg_dataset_descriptions_partial.csv)
+
+ETL: Clean, normalize, enrich metadata.
+
+Database: Load into Neon PostgreSQL. Use pgvector extension for embeddings. Schema:
+
+games(id, title, description, min_players, max_players, playtime, complexity, age_rec, categories, mechanics, rating, embedding_vector)
+
+2. Embedding layer
+
+Use an embedding model (OpenAI text-embedding-3-large).
+
+Convert each game description (plus metadata text) into a vector.
+
+Store vectors in embedding_vector column with pgvector.
+
+3. Query handling
+
+User submits free-text query (e.g., “family friendly game about cats for me and my two kids”).
+
+Convert query into embedding vector.
+
+Perform vector similarity search (cosine_distance or inner product) in Postgres to retrieve nearest games.
+
+Add filters for structured attributes if mentioned:
+
+"two kids" → num_players between 3 and 4.
+
+"family friendly" → age_rec <= 10.
+
+4. Application layer
+
+Backend (Python/FastAPI or Node/Express). Tasks:
+
+Accept user query.
+
+Generate embedding.
+
+Run SQL with similarity + filters.
+
+Return ranked results with title, description, match score.
+
+5. Frontend/UI
+
+Simple web app.
+
+Search bar → recommendations list with thumbnails, title, description, stats.
+
+System flow:
+CSV → Preprocess → Load into Neon PostgreSQL with embeddings → User query → Embedding vector → pgvector similarity search (+ filter logic) → Ranked recommendations returned.
+

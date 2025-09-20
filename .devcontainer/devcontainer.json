@@ -1,0 +1,7 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "Python 3",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.12-bullseye",
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y build-essential python3.10 python3.10-dev python3.10-venv cmake clang llvm-dev libclang-dev curl git && curl https://sh.rustup.rs -sSf | sh -s -- -y && python3.10 -m pip install --upgrade pip && python3.10 -m pip install -r requirements.txt"
+}

@@ -1,0 +1,8 @@
+# Python requirements for this dev container
+# Add your main project dependencies below
+langflow
+kagglehub
+pandas
+requests
+beautifulsoup4
+# Add any other packages you use in your notebooks/scripts below
