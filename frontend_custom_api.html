@@ -3,162 +3,878 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Better Board Game Search - Recommendations</title>
+    <title>Better Board Game Search - Custom API</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+            margin: 0;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
+
         .container {
+            max-width: 1200px;
+            margin: 0 auto;
             background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
             text-align: center;
-            margin-bottom: 10px;
         }
-        .subtitle {
-            text-align: center;
-            color: #7f8c8d;
-            margin-bottom: 30px;
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
             font-size: 1.1em;
         }
-        .input-group {
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-group {
             margin-bottom: 20px;
         }
-        label {
+
+        .form-group label {
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: bold;
-            color: #34495e;
+            color: #2c3e50;
         }
-        input[type="url"], input[type="text"], textarea {
+
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 12px;
-            border: 2px solid #bdc3c7;
-            border-radius: 5px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
             font-size: 16px;
+            transition: border-color 0.3s ease;
             box-sizing: border-box;
         }
-        input[type="url"]:focus, input[type="text"]:focus, textarea:focus {
-            border-color: #3498db;
+
+        .form-group input:focus, .form-group textarea:focus {
             outline: none;
+            border-color: #3498db;
         }
-        button {
-            background-color: #3498db;
-            color: white;
+
+        .form-group textarea {
+            height: 100px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
             padding: 12px 24px;
             border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            border-radius: 8px;
             font-size: 16px;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
-        button:hover {
-            background-color: #2980b9;
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
         }
-        button:disabled {
-            background-color: #bdc3c7;
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
+            transform: none !important;
         }
+
         .status {
-            padding: 15px;
             margin: 20px 0;
-            border-radius: 5px;
+            padding: 15px;
+            border-radius: 8px;
             font-weight: bold;
         }
+
         .status.success {
-            background-color: #d4edda;
+            background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
+
         .status.error {
-            background-color: #f8d7da;
+            background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
+
         .status.info {
-            background-color: #d1ecf1;
+            background: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
-        .game-item {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-        }
-        .game-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        .game-description {
-            color: #6c757d;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-        .game-details {
-            font-size: 0.9em;
-            color: #6c757d;
-            font-family: monospace;
-        }
-        .loading {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-        }
+
         .results {
             margin-top: 20px;
             padding: 20px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
+
+        .game-item {
+            background: #ffffff;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .game-item:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .game-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .game-title::before {
+            content: "🎲";
+            margin-right: 8px;
+            font-size: 1.2em;
+        }
+
+        .game-description {
+            color: #34495e;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 1.05em;
+        }
+
+        .game-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border-left: 3px solid #3498db;
+        }
+
+        .detail-label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            color: #34495e;
+            font-size: 0.95em;
+            margin-top: 2px;
+        }
+
+        .game-mechanics {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .mechanics-label {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .mechanics-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .mechanic-tag {
+            background: #3498db;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .rating {
+            display: inline-flex;
+            align-items: center;
+            background: #f39c12;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .rating::before {
+            content: "⭐";
+            margin-right: 4px;
+        }
+
+        .players {
+            display: inline-flex;
+            align-items: center;
+            background: #27ae60;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .players::before {
+            content: "👥";
+            margin-right: 4px;
+        }
+
+        .time {
+            display: inline-flex;
+            align-items: center;
+            background: #9b59b6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .time::before {
+            content: "⏱️";
+            margin-right: 4px;
+        }
+
+        .recommendations-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .recommendations-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .recommendations-count {
+            margin-top: 8px;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .example-button {
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            font-size: 0.8em;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .example-button:hover {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+
+        .bgg-link {
+            background: #ff6b35;
+            color: white;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .bgg-link:hover {
+            background: #e55a2b;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .bgg-link-inline {
+            color: #ff6b35;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .bgg-link-inline:hover {
+            text-decoration: underline;
+        }
+
+        .data-attributes {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .data-attributes-header {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .data-attributes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 8px;
+        }
+
+        .data-attribute {
+            display: flex;
+            align-items: flex-start;
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .data-attribute:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            font-weight: bold;
+            color: #495057;
+            min-width: 100px;
+            margin-right: 10px;
+            font-size: 0.9em;
+        }
+
+        .data-value {
+            color: #6c757d;
+            font-size: 0.9em;
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .raw-response {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .raw-response-header {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #6c757d;
+            padding-bottom: 5px;
+        }
+
+        .raw-response-content {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: #495057;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .structured-recommendations {
+            margin-top: 20px;
+        }
+
+        .structured-header {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎲 Better Board Game Search</h1>
-        <p class="subtitle">
-            Get personalized board game recommendations from your Better Board Game Search API
-        </p>
-        
-        <div class="input-group">
-            <label for="apiUrl">Custom API URL:</label>
-            <input type="url" id="apiUrl" placeholder="http://localhost:5000 or https://your-ngrok-url.ngrok.io" 
-                   value="http://localhost:5000">
+        <div class="header">
+            <h1>🎲 Better Board Game Search</h1>
+            <p>Find your perfect board game with AI-powered recommendations</p>
         </div>
         
-        <div class="input-group">
-            <label for="query">What kind of board game are you looking for?</label>
-            <textarea id="query" rows="3" placeholder="e.g., I want a strategy game for 2-4 players that takes about 60 minutes"></textarea>
+        <div class="content">
+            <div class="form-group">
+                <label for="apiUrl">API URL:</label>
+                <input type="text" id="apiUrl" value="https://34730ff4408c.ngrok-free.app" placeholder="Enter your API URL">
+            </div>
+            
+            <div class="form-group">
+                <label for="query">What kind of board game are you looking for?</label>
+                <textarea id="query" placeholder="e.g., strategy games for 2-4 players, cooperative games, family games, etc."></textarea>
+                <div style="margin-top: 5px;">
+                    <button type="button" class="example-button" onclick="setQuery('Strategy game for 2 players, 30-60 minutes, high complexity')">2p Strategy</button>
+                    <button type="button" class="example-button" onclick="setQuery('Family game for kids, easy to learn, under 45 minutes')">Family Game</button>
+                    <button type="button" class="example-button" onclick="setQuery('Party game for 6+ players, lots of laughter')">Party Game</button>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-secondary" onclick="testConnection()">Test Connection</button>
+                <button class="btn btn-primary" onclick="getRecommendations()">Get Recommendations</button>
+            </div>
+            
+            <div id="status"></div>
+            <div id="results"></div>
         </div>
-        
-        <button onclick="testConnection()">Test Connection</button>
-        <button onclick="getRecommendations()">Get Recommendations</button>
-        
-        <div id="status"></div>
-        <div id="results"></div>
     </div>
 
     <script>
+        function setQuery(query) {
+            document.getElementById('query').value = query;
+        }
+
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
             statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
         }
 
-        function showResults(content, type = 'info') {
-            const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = `<div class="status ${type}">${content}</div>`;
+        function extractMessageFromLangflowResponse(data) {
+            try {
+                // Handle the complex nested Langflow response structure
+                if (data.outputs && data.outputs.length > 0) {
+                    const output = data.outputs[0];
+                    if (output.outputs && output.outputs.length > 0) {
+                        const innerOutput = output.outputs[0];
+                        if (innerOutput.results && innerOutput.results.message) {
+                            const message = innerOutput.results.message;
+                            if (message.data && message.data.text) {
+                                return message.data.text;
+                            } else if (message.text) {
+                                return message.text;
+                            }
+                        }
+                    }
+                }
+                
+                // If no message found, return the whole response as string
+                return JSON.stringify(data, null, 2);
+            } catch (e) {
+                console.warn('Could not extract message from Langflow response:', e);
+                return typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+            }
+        }
+
+        function extractStructuredGames(data) {
+            const games = [];
+            
+            try {
+                console.log('Full API response structure:', data);
+                
+                // Look for games in various possible locations in the response
+                const searchPaths = [
+                    'data.games',
+                    'data.recommendations',
+                    'data.results',
+                    'outputs[0].outputs.games',
+                    'outputs[0].outputs.recommendations',
+                    'outputs[0].outputs.results',
+                    'outputs[0].outputs.data.games',
+                    'outputs[0].outputs.data.recommendations',
+                    'outputs[0].outputs.data.results',
+                    'outputs[0].outputs.message.data.games',
+                    'outputs[0].outputs.message.data.recommendations',
+                    'outputs[0].outputs.message.data.results',
+                    'games',
+                    'recommendations',
+                    'results'
+                ];
+
+                for (const path of searchPaths) {
+                    const gamesData = getNestedValue(data, path);
+                    if (gamesData && Array.isArray(gamesData)) {
+                        console.log(`Found games at path: ${path}`, gamesData);
+                        games.push(...gamesData.map(game => normalizeGameData(game)));
+                        break; // Use the first valid path found
+                    }
+                }
+
+                // If no games found in structured data, try to extract from text
+                if (games.length === 0) {
+                    console.log('No structured games found, falling back to text parsing');
+                    const message = extractMessageFromLangflowResponse(data);
+                    const textGames = parseTextRecommendations(message);
+                    games.push(...textGames);
+                }
+
+                console.log('Final extracted games:', games);
+                return games;
+            } catch (error) {
+                console.error('Error extracting structured games:', error);
+                return [];
+            }
+        }
+
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((current, key) => {
+                if (current && typeof current === 'object') {
+                    if (key.includes('[') && key.includes(']')) {
+                        // Handle array access like 'outputs[0]'
+                        const arrayKey = key.substring(0, key.indexOf('['));
+                        const index = parseInt(key.substring(key.indexOf('[') + 1, key.indexOf(']')));
+                        return current[arrayKey] && current[arrayKey][index];
+                    }
+                    return current[key];
+                }
+                return undefined;
+            }, obj);
+        }
+
+        function normalizeGameData(game) {
+            // Normalize different possible game data structures
+            return {
+                name: game.name || game.title || game.game_name || game.game_title || 'Unknown Game',
+                description: game.description || game.desc || game.summary || game.overview || '',
+                rating: game.rating || game.rating_average || game.score || game.bgg_rating || game.average_rating,
+                minPlayers: game.min_players || game.minPlayers || game.min_player_count || game.players?.min,
+                maxPlayers: game.max_players || game.maxPlayers || game.max_player_count || game.players?.max,
+                playTime: game.play_time || game.playTime || game.duration || game.playing_time || game.time,
+                year: game.year || game.year_published || game.published_year || game.release_year,
+                mechanics: game.mechanics || game.mechanisms || game.game_mechanics || game.categories || [],
+                complexity: game.complexity || game.complexity_average || game.weight || game.difficulty,
+                bggRank: game.bgg_rank || game.rank || game.boardgamegeek_rank || game.bgg_position,
+                bggId: game.bgg_id || game.boardgamegeek_id || game.id,
+                bggUrl: game.bgg_url || (game.bgg_id ? `https://boardgamegeek.com/boardgame/${game.bgg_id}` : null),
+                image: game.image || game.image_url || game.thumbnail || game.cover_image,
+                designer: game.designer || game.designers || game.author,
+                publisher: game.publisher || game.publishers || game.company,
+                category: game.category || game.categories || game.genre,
+                age: game.age || game.min_age || game.minimum_age,
+                weight: game.weight || game.complexity || game.difficulty
+            };
+        }
+
+        function parseTextRecommendations(text) {
+            const games = [];
+            const lines = text.split('\n');
+            let currentGame = null;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) continue;
+
+                // Look for numbered lists with bold game names - more flexible pattern
+                if (line.match(/^\d+\.?\s*\*\*[^*]+\*\*/)) {
+                    if (currentGame) {
+                        games.push(currentGame);
+                    }
+                    
+                    // Extract game name from **Game Name** format
+                    const match = line.match(/^\d+\.?\s*\*\*([^*]+)\*\*/);
+                    if (match) {
+                        const gameName = match[1].trim();
+                        
+                        currentGame = {
+                            name: gameName,
+                            description: '',
+                            details: {},
+                            bggId: null,
+                            bggUrl: null
+                        };
+                        
+                        // Try to extract BGG ID or create BGG URL
+                        currentGame.bggUrl = `https://boardgamegeek.com/boardgame/${getBGGIdForGame(gameName)}`;
+                        
+                        // Extract description from the same line if it exists
+                        const descriptionMatch = line.match(/\*\*[^*]+\*\*\s*-\s*(.+)/);
+                        if (descriptionMatch) {
+                            currentGame.description = descriptionMatch[1].trim();
+                        }
+                    }
+                } else if (currentGame) {
+                    // Check for specific game details
+                    if (line.includes('Rating:') || line.includes('Score:')) {
+                        const rating = line.match(/(\d+\.?\d*)/);
+                        if (rating) currentGame.details.rating = rating[1];
+                    } else if (line.includes('Players:') || line.includes('Player count:')) {
+                        const players = line.match(/(\d+)\s*-\s*(\d+)/);
+                        if (players) {
+                            currentGame.details.minPlayers = players[1];
+                            currentGame.details.maxPlayers = players[2];
+                        }
+                    } else if (line.includes('Time:') || line.includes('Duration:')) {
+                        const time = line.match(/(\d+)/);
+                        if (time) currentGame.details.playTime = time[1];
+                    } else if (line.includes('Year:') || line.includes('Published:')) {
+                        const year = line.match(/(\d{4})/);
+                        if (year) currentGame.details.year = year[1];
+                    } else if (line.includes('Mechanics:') || line.includes('Mechanisms:')) {
+                        const mechanics = line.split(':')[1]?.split(',').map(m => m.trim()).filter(m => m);
+                        if (mechanics) currentGame.details.mechanics = mechanics;
+                    } else if (line.length > 20 && !line.includes(':') && !line.match(/^\d+\.?\s*\*\*/)) {
+                        // Likely a description line (but not a new game)
+                        currentGame.description += (currentGame.description ? ' ' : '') + line;
+                    }
+                }
+            }
+
+            if (currentGame) {
+                games.push(currentGame);
+            }
+
+            return games;
+        }
+
+        // Function to get BGG ID for common games
+        function getBGGIdForGame(gameName) {
+            const bggIds = {
+                'Catan': '13',
+                'Carcassonne': '822',
+                'Ticket to Ride': '9209',
+                '7 Wonders': '68448',
+                '7 Wonders Duel': '173346',
+                'Small World': '40692',
+                'Kingdomino': '192488',
+                'Blokus': '2453',
+                'Pandemic': '30549',
+                'Wingspan': '266192',
+                'Azul': '230802',
+                'Splendor': '148228',
+                'Terraforming Mars': '167791',
+                'Gloomhaven': '174430',
+                'Scythe': '169786',
+                'Everdell': '199792',
+                'Viticulture': '183394',
+                'Brass: Birmingham': '224517',
+                'Great Western Trail': '193738',
+                'Concordia': '124361',
+                'Power Grid': '2651',
+                'Agricola': '31260',
+                'Le Havre': '35677',
+                'Puerto Rico': '3076',
+                'Race for the Galaxy': '28143',
+                'Dominion': '266192',
+                'Codenames': '178900',
+                'The Resistance': '41114',
+                'One Night Ultimate Werewolf': '147949',
+                'Love Letter': '129622',
+                'Sushi Go!': '133473',
+                'Dixit': '39856',
+                'Mysterium': '181304',
+                'Betrayal at House on the Hill': '10547',
+                'Dead of Winter': '150376',
+                'Arkham Horror': '15987',
+                'Eldritch Horror': '146021',
+                'Mage Knight': '96848',
+                'Twilight Imperium': '12493',
+                'Root': '237182',
+                'Spirit Island': '162886',
+                'Twilight Struggle': '12333',
+                'Patchwork': '163412',
+                'Jaipur': '54043',
+                'Lost Cities': '50',
+                'Hive': '2655',
+                'Onitama': '160610',
+                'Santorini': '194655',
+                'The Fox in the Forest': '230802',
+                'Star Realms': '147020',
+                'Battle Line': '393',
+                'Targi': '118048',
+                'Akrotiri': '1406',
+                'The Castles of Burgundy': '84876',
+                'Agricola: All Creatures Big and Small': '155547',
+                'Le Havre: The Inland Port': '155547',
+                'Innovation': '104162',
+                'Glory to Rome': '53798',
+                'Mottainai': '180263',
+                'San Juan': '8217',
+                'Caylus': '18602',
+                'Tzolk\'in: The Mayan Calendar': '126163',
+                'Terra Mystica': '120677',
+                'Gaia Project': '220308',
+                'Anachrony': '203420',
+                'Feast for Odin': '177736',
+                'A Feast for Odin': '177736',
+                'Mage Knight Board Game': '96848',
+                'Gloomhaven: Jaws of the Lion': '291457'
+            };
+            
+            // Try exact match first
+            if (bggIds[gameName]) {
+                return bggIds[gameName];
+            }
+            
+            // Try partial matches
+            for (const [key, id] of Object.entries(bggIds)) {
+                if (gameName.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(gameName.toLowerCase())) {
+                    return id;
+                }
+            }
+            
+            // Default to search URL if no match found
+            return `search?q=${encodeURIComponent(gameName)}`;
+        }
+
+        function formatGameCard(game, index) {
+            const name = game.name || `Game ${index}`;
+            const bggUrl = game.bggUrl || `https://boardgamegeek.com/boardgame/${getBGGIdForGame(name)}`;
+
+            let html = `
+                <div class="game-item">
+                    <div class="game-title">
+                        ${name}
+                        <a href="${bggUrl}" target="_blank" class="bgg-link" title="View on BoardGameGeek">
+                            🔗 BGG
+                        </a>
+                    </div>
+                </div>
+            `;
+
+            return html;
+        }
+
+        function parseRecommendations(data) {
+            try {
+                // Extract the raw message first
+                const rawMessage = typeof data === 'string' ? data : extractMessageFromLangflowResponse(data);
+                
+                // Try to extract structured games from the API response
+                let games = [];
+                if (typeof data === 'object' && data !== null) {
+                    games = extractStructuredGames(data);
+                }
+
+                // Start with the raw response at the top
+                let html = `
+                    <div class="recommendations-header">
+                        <h3>🎲 Board Game Recommendations</h3>
+                        <div class="recommendations-count">${games.length > 0 ? `Found ${games.length} game${games.length !== 1 ? 's' : ''}` : 'Raw response from API'}</div>
+                    </div>
+                    <div class="raw-response">
+                        <div class="raw-response-header">📝 Original Response:</div>
+                        <div class="raw-response-content">${rawMessage}</div>
+                    </div>
+                `;
+
+                // If we found structured games, add them
+                if (games.length > 0) {
+                    html += `
+                        <div class="structured-recommendations">
+                            <div class="structured-header">🎯 Structured Recommendations:</div>
+                    `;
+                    
+                    games.forEach((game, index) => {
+                        html += formatGameCard(game, index + 1);
+                    });
+                    
+                    html += `</div>`;
+                }
+
+                return html;
+            } catch (error) {
+                console.error('Error parsing recommendations:', error);
+                return `
+                    <div class="recommendations-header">
+                        <h3>🎲 Board Game Recommendations</h3>
+                    </div>
+                    <div class="game-item">
+                        <div class="game-description">Error parsing recommendations: ${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function formatRecommendations(games) {
+            let html = `
+                <div class="recommendations-header">
+                    <h3>🎲 Board Game Recommendations</h3>
+                    <div class="recommendations-count">Found ${games.length} game${games.length !== 1 ? 's' : ''}</div>
+                </div>
+            `;
+
+            games.forEach((game, index) => {
+                html += formatGameCard(game, index + 1);
+            });
+
+            return html;
         }
 
         async function testConnection() {
@@ -168,104 +884,46 @@
                 return;
             }
 
+            showStatus('<span class="loading-spinner"></span>Testing connection...', 'info');
+
             try {
-                showStatus('Testing connection...', 'info');
-                
-                // Test health endpoint
-                const healthResponse = await fetch(`${apiUrl}/health`, {
+                const response = await fetch(`${apiUrl}/health`, {
+                    method: 'GET',
                     headers: {
                         'ngrok-skip-browser-warning': 'true',
                         'User-Agent': 'Langflow-Client/1.0'
                     }
                 });
-                if (!healthResponse.ok) {
-                    throw new Error(`Health check failed: ${healthResponse.status}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showStatus(`✅ Connection successful! Found ${data.target_flow_name || 'Better Board Game Search'} flow(s).`, 'success');
+                } else {
+                    showStatus(`❌ Connection failed: ${response.status} ${response.statusText}`, 'error');
                 }
-                
-                const healthData = await healthResponse.json();
-                console.log('Health check:', healthData);
-                
-                // Test flows endpoint
-                const flowsResponse = await fetch(`${apiUrl}/api/v1/flows/`, {
-                    headers: {
-                        'ngrok-skip-browser-warning': 'true',
-                        'User-Agent': 'Langflow-Client/1.0'
-                    }
-                });
-                if (!flowsResponse.ok) {
-                    throw new Error(`Flows endpoint failed: ${flowsResponse.status}`);
-                }
-                
-                const flows = await flowsResponse.json();
-                console.log('Available flows:', flows);
-                
-                showStatus(`✅ Connection successful! Found ${flows.length} Better Board Game Search flow(s).`, 'success');
-                
-                // Display available flows
-                if (flows.length > 0) {
-                    let flowsHtml = '<h3>Available Better Board Game Search Flows:</h3>';
-                    flows.forEach(flow => {
-                        flowsHtml += `<div class="game-item">
-                            <div class="game-title">${flow.name || 'Unnamed Flow'}</div>
-                            <div class="game-description">${flow.description || 'No description available'}</div>
-                            <div class="game-details">ID: ${flow.id}</div>
-                        </div>`;
-                    });
-                    showResults(flowsHtml, 'success');
-                }
-                
             } catch (error) {
-                console.error('Connection error:', error);
-                showStatus(`❌ Connection failed: ${error.message}`, 'error');
-                showResults(`
-                    <p>Make sure:</p>
-                    <ul>
-                        <li>Your custom API server is running</li>
-                        <li>The API URL is correct</li>
-                        <li>Langflow is running in the background</li>
-                    </ul>
-                `, 'error');
+                showStatus(`❌ Connection error: ${error.message}`, 'error');
             }
         }
 
         async function getRecommendations() {
             const apiUrl = document.getElementById('apiUrl').value.trim();
             const query = document.getElementById('query').value.trim();
-            
+
             if (!apiUrl) {
                 showStatus('Please enter an API URL', 'error');
                 return;
             }
-            
+
             if (!query) {
-                showStatus('Please enter a query', 'error');
+                showStatus('Please enter a search query', 'error');
                 return;
             }
 
+            showStatus('<span class="loading-spinner"></span>Getting recommendations...', 'info');
+
             try {
-                showStatus('Getting recommendations...', 'info');
-                
-                // Use the first available flow ID
-                const flowsResponse = await fetch(`${apiUrl}/api/v1/flows/`, {
-                    headers: {
-                        'ngrok-skip-browser-warning': 'true',
-                        'User-Agent': 'Langflow-Client/1.0'
-                    }
-                });
-                if (!flowsResponse.ok) {
-                    throw new Error(`Failed to get flows: ${flowsResponse.status}`);
-                }
-                
-                const flows = await flowsResponse.json();
-                if (flows.length === 0) {
-                    throw new Error('No flows available');
-                }
-                
-                const flowId = flows[0].id;
-                console.log('Using flow ID:', flowId);
-                
-                // Run the flow
-                const response = await fetch(`${apiUrl}/api/v1/run/${flowId}`, {
+                const response = await fetch(`${apiUrl}/api/v1/run/50904071-2e67-4fa3-9e34-b3ef50368a94`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -273,10 +931,7 @@
                         'User-Agent': 'Langflow-Client/1.0'
                     },
                     body: JSON.stringify({
-                        input_value: query,
-                        output_type: 'chat',
-                        input_type: 'chat',
-                        tweaks: {}
+                        input_value: query
                     })
                 });
 
@@ -286,33 +941,15 @@
                     
                     showStatus('✅ Recommendations received!', 'success');
                     
-                    // Extract the message from the response
-                    let message = '';
-                    if (data.outputs && data.outputs.length > 0) {
-                        const output = data.outputs[0];
-                        if (output.outputs && output.outputs.message) {
-                            message = output.outputs.message.message || output.outputs.message.text || JSON.stringify(output.outputs.message);
-                        } else {
-                            message = JSON.stringify(output);
-                        }
-                    } else {
-                        message = JSON.stringify(data);
-                    }
-                    
-                    showResults(`
-                        <h3>🎲 Board Game Recommendations</h3>
-                        <div class="game-item">
-                            <div class="game-description">${message}</div>
-                        </div>
-                    `, 'success');
+                    // Parse and display the recommendations
+                    const recommendationsHtml = parseRecommendations(data);
+                    document.getElementById('results').innerHTML = recommendationsHtml;
                 } else {
                     const errorText = await response.text();
-                    throw new Error(`API error: ${response.status} - ${errorText}`);
+                    showStatus(`❌ Error: ${response.status} ${response.statusText} - ${errorText}`, 'error');
                 }
-                
             } catch (error) {
-                console.error('Recommendation error:', error);
-                showStatus(`❌ Failed to get recommendations: ${error.message}`, 'error');
+                showStatus(`❌ Connection error: ${error.message}`, 'error');
             }
         }
     </script>
