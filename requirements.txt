@@ -5,4 +5,8 @@ kagglehub
 pandas
 requests
 beautifulsoup4
+httpx
+langchain-postgres
+pgvector
+psycopg2-binary
 # Add any other packages you use in your notebooks/scripts below
