@@ -139,7 +139,7 @@ class NeonDatabaseVectorStoreComponent(LCVectorStoreComponent):
             display_name="Number of Search Results",
             info="Number of search results to return.",
             advanced=True,
-            value=4,
+            value=10,
         ),
         DropdownInput(
             name="search_type",
@@ -638,6 +638,16 @@ class NeonDatabaseVectorStoreComponent(LCVectorStoreComponent):
 
         return formatted_data
 
+    def _format_year(self, year_value):
+        """Format year value to display as integer (e.g., 2009.0 -> 2009)."""
+        if year_value is None or year_value == "Unknown" or year_value == "":
+            return "Unknown"
+        try:
+            # Convert to float first to handle string numbers, then to int
+            return str(int(float(year_value)))
+        except (ValueError, TypeError):
+            return str(year_value)
+
     def _format_search_results_for_parser(self, docs) -> Data:
         """Format search results for use with Langflow parsers and templates."""
         if not docs:
@@ -711,23 +721,39 @@ class NeonDatabaseVectorStoreComponent(LCVectorStoreComponent):
             )
         
         else:
-            # Return structured data with individual fields for each game
-            self.log("Taking non-template path - returning structured data with individual fields")
+            # Return structured data with detailed information for all games
+            self.log("Taking non-template path - returning detailed data for all games")
             
-            # Create a single Data object with all game data as separate fields
-            # This allows the parser to access individual fields like rank, name, etc.
-            
-            # For now, let's return the first game's data as individual fields
-            # and put all games' data in the text field
             if parsed_games:
-                first_game = parsed_games[0]
+                # Create detailed text for all games
+                detailed_games = []
                 
-                # Create a single Data object with individual fields from the first game
-                # and all games' data in the text field
-                all_games_text = "\n\n".join([
-                    f"Game {i+1}: {game['name']} ({game['year_published']}) - {game['rating_average']}/10"
-                    for i, game in enumerate(parsed_games)
-                ])
+                for i, game in enumerate(parsed_games):
+                    # Format each game with full details
+                    mechanics_str = ", ".join(game["mechanics"]) if isinstance(game["mechanics"], list) else str(game["mechanics"])
+                    domains_str = ", ".join(game["domains"]) if isinstance(game["domains"], list) else str(game["domains"])
+                    
+                    # Format year as integer
+                    formatted_year = self._format_year(game.get('year_published', 'Unknown'))
+                    
+                    detailed_game = f"""Game {i+1}: {game['name']} ({formatted_year}) ================================================================================
+RANKINGS & METRICS:    Search Position: #{game.get('rank', '?')} | BGG Rank: #{game.get('bgg_rank', '?')} | ID: {game.get('id', '?')}
+    Rating: {game.get('rating_average', '?')}/10 from {game.get('users_rated', '?')} users
+    Complexity: {game.get('complexity_average', '?')}/5 | Owned by: {game.get('owned_users', '?')} people
+GAME SPECIFICATIONS:    Players: {game.get('min_players', '?')}-{game.get('max_players', '?')} | Duration: {game.get('play_time', '?')} minutes
+    Age: {game.get('min_age', '?')}+ | Year: {formatted_year}
+CATEGORIZATION:    Domains: {domains_str}
+    Mechanics: {mechanics_str}
+RESOURCES:    BoardGameGeek: {game.get('url', 'N/A')}
+DESCRIPTION:    {game.get('description', 'No description available')}"""
+                    
+                    detailed_games.append(detailed_game)
+                
+                # Combine all detailed games
+                all_games_text = "\n\n".join(detailed_games)
+                
+                # Return with first game's individual fields for backward compatibility
+                first_game = parsed_games[0]
                 
                 return Data(
                     text=all_games_text,
@@ -735,7 +761,7 @@ class NeonDatabaseVectorStoreComponent(LCVectorStoreComponent):
                     id=first_game.get("id", "Unknown"),
                     name=first_game.get("name", "Unknown"),
                     game_name=first_game.get("game_name", "Unknown"),
-                    year_published=first_game.get("year_published", "Unknown"),
+                    year_published=self._format_year(first_game.get("year_published", "Unknown")),
                     min_players=first_game.get("min_players", "Unknown"),
                     max_players=first_game.get("max_players", "Unknown"),
                     play_time=first_game.get("play_time", "Unknown"),
@@ -826,7 +852,7 @@ class NeonDatabaseVectorStoreComponent(LCVectorStoreComponent):
                     "id": row[0] if row[0] else "Unknown",
                     "name": row[1] if row[1] else "Unknown",
                     "game_name": row[1] if row[1] else "Unknown",
-                    "year_published": row[2] if row[2] else "Unknown",
+                    "year_published": self._format_year(row[2]) if row[2] else "Unknown",
                     "min_players": row[3] if row[3] else "Unknown",
                     "max_players": row[4] if row[4] else "Unknown",
                     "play_time": row[5] if row[5] else "Unknown",

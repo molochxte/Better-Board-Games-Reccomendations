@@ -157,16 +157,18 @@
         .game-item {
             background: #ffffff;
             border: 1px solid #e1e8ed;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 4px solid #3498db;
         }
 
         .game-item:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            border-left-color: #2980b9;
         }
 
         .game-title {
@@ -427,51 +429,6 @@
             word-break: break-word;
         }
 
-        .raw-response {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .raw-response-header {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-            border-bottom: 2px solid #6c757d;
-            padding-bottom: 5px;
-        }
-
-        .raw-response-content {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9em;
-            line-height: 1.6;
-            color: #495057;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-
-        .structured-recommendations {
-            margin-top: 20px;
-        }
-
-        .structured-header {
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 1.2em;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 8px;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -484,7 +441,7 @@
         <div class="content">
             <div class="form-group">
                 <label for="apiUrl">API URL:</label>
-                <input type="text" id="apiUrl" value="https://34730ff4408c.ngrok-free.app" placeholder="Enter your API URL">
+                <input type="text" id="apiUrl" value="http://localhost:5000" placeholder="Enter your API URL">
             </div>
             
             <div class="form-group">
@@ -634,26 +591,50 @@
 
         function parseTextRecommendations(text) {
             const games = [];
-            const lines = text.split('\n');
             let currentGame = null;
+
+            console.log('Parsing text:', text);
+            
+            // Check if the text is all on one line (common with API responses)
+            const lines = text.split('\n');
+            console.log('Lines:', lines);
+            
+            // If we have only one line with all the data, parse it directly
+            if (lines.length === 1 && lines[0].includes('RANKINGS & METRICS:')) {
+                console.log('Single line response detected, parsing directly');
+                return parseSingleLineResponse(text);
+            }
+            
+            // Check for new format with "Game X:" pattern
+            if (text.includes('Game 1:') && text.includes('RANKINGS & METRICS:')) {
+                console.log('New detailed format detected, parsing directly');
+                return parseSingleLineResponse(text);
+            }
 
             for (let line of lines) {
                 line = line.trim();
                 if (!line) continue;
+                
+                console.log('Processing line:', line);
 
-                // Look for numbered lists with bold game names - more flexible pattern
-                if (line.match(/^\d+\.?\s*\*\*[^*]+\*\*/)) {
+                // Look for game titles with year in parentheses - pattern: "Game Name (Year)"
+                if (line.match(/^[A-Za-z0-9][^(]*\(\d{4}[^)]*\)/)) {
+                    console.log('Found game title line:', line);
                     if (currentGame) {
                         games.push(currentGame);
                     }
                     
-                    // Extract game name from **Game Name** format
-                    const match = line.match(/^\d+\.?\s*\*\*([^*]+)\*\*/);
+                    // Extract game name and year
+                    const match = line.match(/^([^(]+)\((\d{4}[^)]*)\)/);
                     if (match) {
                         const gameName = match[1].trim();
+                        const year = match[2].trim();
+                        
+                        console.log('Extracted game:', gameName, 'Year:', year);
                         
                         currentGame = {
                             name: gameName,
+                            year: year,
                             description: '',
                             details: {},
                             bggId: null,
@@ -662,36 +643,89 @@
                         
                         // Try to extract BGG ID or create BGG URL
                         currentGame.bggUrl = `https://boardgamegeek.com/boardgame/${getBGGIdForGame(gameName)}`;
-                        
-                        // Extract description from the same line if it exists
-                        const descriptionMatch = line.match(/\*\*[^*]+\*\*\s*-\s*(.+)/);
-                        if (descriptionMatch) {
-                            currentGame.description = descriptionMatch[1].trim();
-                        }
                     }
                 } else if (currentGame) {
-                    // Check for specific game details
-                    if (line.includes('Rating:') || line.includes('Score:')) {
-                        const rating = line.match(/(\d+\.?\d*)/);
-                        if (rating) currentGame.details.rating = rating[1];
-                    } else if (line.includes('Players:') || line.includes('Player count:')) {
-                        const players = line.match(/(\d+)\s*-\s*(\d+)/);
-                        if (players) {
-                            currentGame.details.minPlayers = players[1];
-                            currentGame.details.maxPlayers = players[2];
+                    console.log('Processing details for current game:', currentGame.name, 'Line:', line);
+                    // Parse structured sections
+                    if (line.includes('RANKINGS & METRICS:')) {
+                        // Skip section header
+                    } else if (line.includes('Search Position:') || line.includes('BGG Rank:')) {
+                        const bggRankMatch = line.match(/BGG Rank:\s*#?(\d+)/);
+                        if (bggRankMatch) {
+                            currentGame.details.bggRank = bggRankMatch[1];
+                            console.log('Found BGG Rank:', bggRankMatch[1]);
                         }
-                    } else if (line.includes('Time:') || line.includes('Duration:')) {
-                        const time = line.match(/(\d+)/);
-                        if (time) currentGame.details.playTime = time[1];
-                    } else if (line.includes('Year:') || line.includes('Published:')) {
-                        const year = line.match(/(\d{4})/);
-                        if (year) currentGame.details.year = year[1];
-                    } else if (line.includes('Mechanics:') || line.includes('Mechanisms:')) {
-                        const mechanics = line.split(':')[1]?.split(',').map(m => m.trim()).filter(m => m);
-                        if (mechanics) currentGame.details.mechanics = mechanics;
-                    } else if (line.length > 20 && !line.includes(':') && !line.match(/^\d+\.?\s*\*\*/)) {
-                        // Likely a description line (but not a new game)
+                    } else if (line.includes('Rating:') || line.includes('Score:')) {
+                        const ratingMatch = line.match(/Rating:\s*([0-9,]+)\/10/);
+                        if (ratingMatch) {
+                            currentGame.details.rating = ratingMatch[1].replace(',', '.');
+                            console.log('Found Rating:', ratingMatch[1]);
+                        }
+                    } else if (line.includes('Complexity:')) {
+                        const complexityMatch = line.match(/Complexity:\s*([0-9,]+)\/5/);
+                        if (complexityMatch) {
+                            currentGame.details.complexity = complexityMatch[1].replace(',', '.');
+                            console.log('Found Complexity:', complexityMatch[1]);
+                        }
+                    } else if (line.includes('Owned by:')) {
+                        const ownedMatch = line.match(/Owned by:\s*([0-9,]+)/);
+                        if (ownedMatch) {
+                            currentGame.details.ownedBy = ownedMatch[1];
+                            console.log('Found Owned By:', ownedMatch[1]);
+                        }
+                    } else if (line.includes('GAME SPECIFICATIONS:')) {
+                        // Skip section header
+                    } else if (line.includes('Players:')) {
+                        const playersMatch = line.match(/Players:\s*(\d+)-(\d+)/);
+                        if (playersMatch) {
+                            currentGame.details.minPlayers = playersMatch[1];
+                            currentGame.details.maxPlayers = playersMatch[2];
+                            console.log('Found Players:', playersMatch[1], '-', playersMatch[2]);
+                        }
+                    } else if (line.includes('Duration:')) {
+                        const durationMatch = line.match(/Duration:\s*(\d+)\s*minutes/);
+                        if (durationMatch) {
+                            currentGame.details.playTime = durationMatch[1];
+                            console.log('Found Duration:', durationMatch[1]);
+                        }
+                    } else if (line.includes('Age:')) {
+                        const ageMatch = line.match(/Age:\s*(\d+)\+/);
+                        if (ageMatch) {
+                            currentGame.details.age = ageMatch[1];
+                            console.log('Found Age:', ageMatch[1]);
+                        }
+                    } else if (line.includes('Year:')) {
+                        const yearMatch = line.match(/Year:\s*(\d{4})/);
+                        if (yearMatch) {
+                            currentGame.year = yearMatch[1];
+                            console.log('Found Year:', yearMatch[1]);
+                        }
+                    } else if (line.includes('CATEGORIZATION:')) {
+                        // Skip section header
+                    } else if (line.includes('Mechanics:')) {
+                        const mechanicsMatch = line.match(/Mechanics:\s*(.+)/);
+                        if (mechanicsMatch) {
+                            currentGame.details.mechanics = mechanicsMatch[1].split(',').map(m => m.trim()).filter(m => m);
+                            console.log('Found Mechanics:', mechanicsMatch[1]);
+                        }
+                    } else if (line.includes('RESOURCES:')) {
+                        // Skip section header
+                    } else if (line.includes('BoardGameGeek:')) {
+                        const bggMatch = line.match(/BoardGameGeek:\s*(https:\/\/boardgamegeek\.com\/boardgame\/\d+)/);
+                        if (bggMatch) {
+                            currentGame.bggUrl = bggMatch[1];
+                            const idMatch = bggMatch[1].match(/boardgame\/(\d+)/);
+                            if (idMatch) {
+                                currentGame.bggId = idMatch[1];
+                            }
+                            console.log('Found BGG URL:', bggMatch[1]);
+                        }
+                    } else if (line.includes('DESCRIPTION:')) {
+                        // Skip section header
+                    } else if (line.startsWith('In the') || line.startsWith('Each player') || line.startsWith('The game') || line.startsWith('While') || line.startsWith('This')) {
+                        // Description text
                         currentGame.description += (currentGame.description ? ' ' : '') + line;
+                        console.log('Added description text:', line);
                     }
                 }
             }
@@ -700,6 +734,131 @@
                 games.push(currentGame);
             }
 
+            console.log('Final parsed games:', games);
+            return games;
+        }
+
+        function parseSingleLineResponse(text) {
+            console.log('Parsing single line response:', text);
+            const games = [];
+            
+            // Split by game separators to handle multiple games
+            // Look for "Game X: " pattern followed by game name and year
+            const gameSections = text.split(/(?=Game \d+: [^(]+\(\d{4}[^)]*\))/);
+            console.log('Found game sections:', gameSections.length);
+            
+            for (let i = 0; i < gameSections.length; i++) {
+                const section = gameSections[i].trim();
+                if (!section) continue;
+                
+                console.log(`Processing game section ${i + 1}:`, section.substring(0, 100) + '...');
+                
+                // Extract game name and year from the beginning
+                const gameMatch = section.match(/Game \d+: ([^(]+)\((\d{4}[^)]*)\)/);
+                if (!gameMatch) {
+                    console.log('No game title found in section');
+                    continue;
+                }
+                
+                const gameName = gameMatch[1].trim();
+                const year = gameMatch[2].trim();
+                
+                console.log('Extracted game:', gameName, 'Year:', year);
+                
+                const game = {
+                    name: gameName,
+                    year: year,
+                    description: '',
+                    details: {},
+                    bggId: null,
+                    bggUrl: null
+                };
+            
+                // Parse BGG Rank
+                const bggRankMatch = section.match(/BGG Rank:\s*#?(\d+)/);
+                if (bggRankMatch) {
+                    game.details.bggRank = bggRankMatch[1];
+                    console.log('Found BGG Rank:', bggRankMatch[1]);
+                }
+                
+                // Parse Rating
+                const ratingMatch = section.match(/Rating:\s*([0-9,]+)\/10/);
+                if (ratingMatch) {
+                    game.details.rating = ratingMatch[1].replace(',', '.');
+                    console.log('Found Rating:', ratingMatch[1]);
+                }
+                
+                // Parse Complexity
+                const complexityMatch = section.match(/Complexity:\s*([0-9,]+)\/5/);
+                if (complexityMatch) {
+                    game.details.complexity = complexityMatch[1].replace(',', '.');
+                    console.log('Found Complexity:', complexityMatch[1]);
+                }
+                
+                // Parse Owned By
+                const ownedMatch = section.match(/Owned by:\s*([0-9,]+)/);
+                if (ownedMatch) {
+                    game.details.ownedBy = ownedMatch[1];
+                    console.log('Found Owned By:', ownedMatch[1]);
+                }
+                
+                // Parse Players
+                const playersMatch = section.match(/Players:\s*(\d+)-(\d+)/);
+                if (playersMatch) {
+                    game.details.minPlayers = playersMatch[1];
+                    game.details.maxPlayers = playersMatch[2];
+                    console.log('Found Players:', playersMatch[1], '-', playersMatch[2]);
+                }
+                
+                // Parse Duration
+                const durationMatch = section.match(/Duration:\s*(\d+)\s*minutes/);
+                if (durationMatch) {
+                    game.details.playTime = durationMatch[1];
+                    console.log('Found Duration:', durationMatch[1]);
+                }
+                
+                // Parse Age
+                const ageMatch = section.match(/Age:\s*(\d+)\+/);
+                if (ageMatch) {
+                    game.details.age = ageMatch[1];
+                    console.log('Found Age:', ageMatch[1]);
+                }
+                
+                // Parse Mechanics
+                const mechanicsMatch = section.match(/Mechanics:\s*([^R]+?)(?=RESOURCES:|$)/);
+                if (mechanicsMatch) {
+                    game.details.mechanics = mechanicsMatch[1].split(',').map(m => m.trim()).filter(m => m);
+                    console.log('Found Mechanics:', mechanicsMatch[1]);
+                }
+                
+                // Parse BGG URL
+                const bggMatch = section.match(/BoardGameGeek:\s*(https:\/\/boardgamegeek\.com\/boardgame\/\d+)/);
+                if (bggMatch) {
+                    game.bggUrl = bggMatch[1];
+                    const idMatch = bggMatch[1].match(/boardgame\/(\d+)/);
+                    if (idMatch) {
+                        game.bggId = idMatch[1];
+                    }
+                    console.log('Found BGG URL:', bggMatch[1]);
+                }
+                
+                // Parse Description - handle multiline descriptions
+                const descMatch = section.match(/DESCRIPTION:\s*([\s\S]+?)(?=\n\nGame \d+:|$)/);
+                if (descMatch) {
+                    game.description = descMatch[1].trim();
+                    console.log('Found Description:', game.description.substring(0, 100) + '...');
+                }
+                
+                // Set BGG URL if not found
+                if (!game.bggUrl) {
+                    game.bggUrl = `https://boardgamegeek.com/boardgame/${getBGGIdForGame(gameName)}`;
+                }
+                
+                games.push(game);
+                console.log('Final parsed game:', game);
+            }
+            
+            console.log('Total games parsed:', games.length);
             return games;
         }
 
@@ -795,19 +954,119 @@
 
         function formatGameCard(game, index) {
             const name = game.name || `Game ${index}`;
+            const year = game.year || game.details?.year || '';
             const bggUrl = game.bggUrl || `https://boardgamegeek.com/boardgame/${getBGGIdForGame(name)}`;
+            const description = game.description || '';
+            const details = game.details || {};
 
             let html = `
                 <div class="game-item">
                     <div class="game-title">
-                        ${name}
+                        ${name}${year ? ` (${year})` : ''}
                         <a href="${bggUrl}" target="_blank" class="bgg-link" title="View on BoardGameGeek">
                             🔗 BGG
                         </a>
                     </div>
-                </div>
             `;
 
+            // Add description if available
+            if (description) {
+                html += `
+                    <div class="game-description">
+                        ${description}
+                    </div>
+                `;
+            }
+
+            // Add game details if available
+            if (Object.keys(details).length > 0) {
+                html += `<div class="game-details">`;
+                
+                if (details.rating) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Rating</div>
+                            <div class="detail-value">
+                                <span class="rating">${details.rating}/10</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (details.minPlayers && details.maxPlayers) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Players</div>
+                            <div class="detail-value">
+                                <span class="players">${details.minPlayers}-${details.maxPlayers}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (details.playTime) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Duration</div>
+                            <div class="detail-value">
+                                <span class="time">${details.playTime} min</span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (details.complexity) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Complexity</div>
+                            <div class="detail-value">${details.complexity}/5</div>
+                        </div>
+                    `;
+                }
+                
+                if (details.age) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Age</div>
+                            <div class="detail-value">${details.age}+</div>
+                        </div>
+                    `;
+                }
+                
+                if (details.bggRank) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">BGG Rank</div>
+                            <div class="detail-value">#${details.bggRank}</div>
+                        </div>
+                    `;
+                }
+                
+                if (details.ownedBy) {
+                    html += `
+                        <div class="detail-item">
+                            <div class="detail-label">Owned By</div>
+                            <div class="detail-value">${details.ownedBy} people</div>
+                        </div>
+                    `;
+                }
+                
+                html += `</div>`;
+                
+                // Add mechanics if available
+                if (details.mechanics && details.mechanics.length > 0) {
+                    html += `
+                        <div class="game-mechanics">
+                            <div class="mechanics-label">Mechanics:</div>
+                            <div class="mechanics-tags">
+                                ${details.mechanics.map(mechanic => `<span class="mechanic-tag">${mechanic}</span>`).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            html += `</div>`;
             return html;
         }
 
@@ -822,30 +1081,34 @@
                     games = extractStructuredGames(data);
                 }
 
-                // Start with the raw response at the top
+                // If no structured games found, try to parse from text
+                if (games.length === 0) {
+                    games = parseTextRecommendations(rawMessage);
+                }
+
+                // Display only the structured recommendations
                 let html = `
                     <div class="recommendations-header">
                         <h3>🎲 Board Game Recommendations</h3>
-                        <div class="recommendations-count">${games.length > 0 ? `Found ${games.length} game${games.length !== 1 ? 's' : ''}` : 'Raw response from API'}</div>
-                    </div>
-                    <div class="raw-response">
-                        <div class="raw-response-header">📝 Original Response:</div>
-                        <div class="raw-response-content">${rawMessage}</div>
+                        <div class="recommendations-count">Found ${games.length} game${games.length !== 1 ? 's' : ''}</div>
                     </div>
                 `;
 
-                // If we found structured games, add them
+                // Add structured game cards
                 if (games.length > 0) {
-                    html += `
-                        <div class="structured-recommendations">
-                            <div class="structured-header">🎯 Structured Recommendations:</div>
-                    `;
-                    
                     games.forEach((game, index) => {
                         html += formatGameCard(game, index + 1);
                     });
-                    
-                    html += `</div>`;
+                } else {
+                    // Fallback if no games could be parsed
+                    html += `
+                        <div class="game-item">
+                            <div class="game-description">
+                                <strong>No games found in the response.</strong><br>
+                                The API returned data but we couldn't parse any game recommendations from it.
+                            </div>
+                        </div>
+                    `;
                 }
 
                 return html;
